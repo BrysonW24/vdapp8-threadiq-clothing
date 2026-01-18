@@ -1,0 +1,54 @@
+{
+  "expo": {
+    "name": "ThreadIQ",
+    "slug": "threadiq",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#1A1A1A"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.vivacity.threadiq",
+      "infoPlist": {
+        "NSCameraUsageDescription": "ThreadIQ needs camera access to photograph your clothing items",
+        "NSPhotoLibraryUsageDescription": "ThreadIQ needs photo library access to add clothing items from your photos"
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#1A1A1A"
+      },
+      "package": "com.vivacity.threadiq",
+      "permissions": [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "ThreadIQ needs camera access to photograph your clothing items"
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "ThreadIQ needs photo library access to add clothing items from your photos"
+        }
+      ]
+    ]
+  }
+}
