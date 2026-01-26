@@ -2,10 +2,11 @@
   <img src="assets/icon.png" width="120" alt="ThreadIQ Logo">
 </p>
 
-<h1 align="center">👕 ThreadIQ</h1>
+<h1 align="center">ThreadIQ</h1>
 
 <p align="center">
-  <strong>Smart Fashion. Effortless Style.</strong>
+  <strong>Smart Fashion. Effortless Style.</strong><br>
+  <sub>AI-powered wardrobe management that ends "I have nothing to wear."</sub>
 </p>
 
 <p align="center">
@@ -17,90 +18,102 @@
 
 ---
 
-## 📱 About
+## The Problem
 
-**ThreadIQ** is an AI-powered wardrobe management app that helps you organize your closet, plan outfits, and shop smarter. Never say "I have nothing to wear" again!
+Most people only wear 20% of their wardrobe regularly. The rest sits there, forgotten.
 
-### ✨ Key Features
-
-- 👔 **Digital Wardrobe** - Catalog all your clothing items
-- 🎨 **Outfit Builder** - Mix and match to create looks
-- 🤖 **AI Suggestions** - Get outfit recommendations based on weather, events, and style
-- 📊 **Analytics** - See what you wear most and least
-- 🛍️ **Smart Shopping** - Discover pieces that complement your wardrobe
-- 📅 **Calendar** - Plan outfits for upcoming events
+**ThreadIQ** catalogs your clothes, suggests outfit combinations, and helps you rediscover pieces you already own - so you stop buying duplicates and start wearing everything.
 
 ---
 
-## 🚀 Quick Start
+## What You Get
 
-\`\`\`bash
+| Feature | Description |
+|---------|-------------|
+| **Digital Wardrobe** | Photograph and categorize all your clothing |
+| **Outfit Builder** | Drag-and-drop interface to create looks |
+| **AI Suggestions** | Smart recommendations for weather and occasion |
+| **Wear Analytics** | See what you wear most (and what you don't) |
+| **Calendar Planning** | Schedule outfits for upcoming events |
+| **Smart Shopping** | Discover pieces that complement your wardrobe |
+
+---
+
+## Quick Start
+
+```bash
 # Install dependencies
 npm install
 
-# Start the development server
+# Start Expo dev server
 npx expo start
 
-# Run on iOS Simulator
+# Run on simulators
 npm run ios
-
-# Run on Android Emulator
 npm run android
-\`\`\`
+```
 
 ---
 
-## 🏗️ Tech Stack
+## Tech Stack
 
 | Technology | Purpose |
 |------------|---------|
 | **Expo SDK 54** | React Native framework |
 | **TypeScript** | Type safety |
 | **Redux Toolkit** | State management |
-| **React Navigation** | Navigation |
-| **TensorFlow.js** | AI/ML features |
+| **TensorFlow.js** | On-device ML inference |
+| **Expo Image Picker** | Camera & gallery access |
 
 ---
 
-## 📦 App Info
+## Technical Approach
+
+- **On-Device ML** - Privacy-first with TensorFlow.js
+- **Background Removal** - Clean product-style photos
+- **Color Analysis** - Extract dominant colors for outfit matching
+- **Light Theme** - Fashion-forward design with purple (#8B5CF6) accents
+
+---
+
+## Project Structure
+
+```
+src/
+├── components/     # Clothing cards, outfit grids
+├── screens/        # Wardrobe, Builder, Suggestions
+├── services/       # Image processing, ML inference
+├── store/          # Redux state for wardrobe
+├── theme/          # Light theme with purple
+└── utils/          # Image helpers, color extraction
+```
+
+---
+
+## App Info
 
 | Key | Value |
 |-----|-------|
-| **Slug** | \`threadiq\` |
-| **iOS Bundle** | \`com.vivacity.threadiq\` |
-| **Android Package** | \`com.vivacity.threadiq\` |
+| **Slug** | `threadiq` |
+| **iOS Bundle** | `com.vivacity.threadiq` |
+| **Android Package** | `com.vivacity.threadiq` |
 
 ---
 
-## 🎨 Design
+## Future Enhancements
 
-Clean, fashion-forward light theme with purple (#8B5CF6) accents:
-
-- Grid-based clothing galleries
-- Drag-and-drop outfit builder
-- Minimalist product cards
-- Swipeable style recommendations
-
----
-
-## 📱 App Store Deployment
-
-\`\`\`bash
-# Build for iOS
-eas build -p ios --profile production
-
-# Submit to App Store
-eas submit -p ios --profile production
-\`\`\`
-
----
-
-## 📄 License
-
-Proprietary - © 2025 Vivacity Digital
+- Social sharing of outfit inspiration
+- Barcode scanning for automatic item details
+- Integration with fashion retailers
+- Virtual try-on with AR
 
 ---
 
 <p align="center">
-  <strong>Built with 👗 by Vivacity Digital</strong>
+  <strong>Built by Vivacity Digital</strong><br>
+  <a href="https://vivacitydigital.com.au">vivacitydigital.com.au</a>
+</p>
+
+<p align="center">
+  <sub>2025 Vivacity Digital. All rights reserved.</sub>
 </p>
