@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/icon.png" width="120" alt="ThreadIQ Logo">
+  <img src="assets/icon.png" width="100" alt="ThreadIQ Logo">
 </p>
 
 <h1 align="center">ThreadIQ</h1>
@@ -11,72 +11,57 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/Platform-iOS%20%7C%20Android-blue?style=flat-square" alt="Platform">
-  <img src="https://img.shields.io/badge/Expo-SDK%2054-black?style=flat-square&logo=expo" alt="Expo SDK">
+  <img src="https://img.shields.io/badge/Expo-SDK%2054-000020?style=flat-square&logo=expo" alt="Expo">
   <img src="https://img.shields.io/badge/React%20Native-0.76-61dafb?style=flat-square&logo=react" alt="React Native">
-  <img src="https://img.shields.io/badge/TypeScript-5.3-3178c6?style=flat-square&logo=typescript" alt="TypeScript">
+  <img src="https://img.shields.io/badge/TensorFlow.js-FF6F00?style=flat-square&logo=tensorflow&logoColor=white" alt="TensorFlow.js">
+</p>
+
+<p align="center">
+  <a href="https://vivacitydigital.com.au">vivacitydigital.com.au</a>
 </p>
 
 ---
 
-## The Problem
+### The Idea
 
-Most people only wear 20% of their wardrobe regularly. The rest sits there, forgotten.
-
-**ThreadIQ** catalogs your clothes, suggests outfit combinations, and helps you rediscover pieces you already own - so you stop buying duplicates and start wearing everything.
+Most people only wear 20% of their wardrobe regularly. The rest sits there, forgotten. ThreadIQ catalogs your clothes, suggests outfit combinations, and helps you rediscover pieces you already own — so you stop buying duplicates and start wearing everything.
 
 ---
 
-## What You Get
+### What It Does
 
-| Feature | Description |
-|---------|-------------|
+| | |
+|---|---|
 | **Digital Wardrobe** | Photograph and categorize all your clothing |
 | **Outfit Builder** | Drag-and-drop interface to create looks |
 | **AI Suggestions** | Smart recommendations for weather and occasion |
-| **Wear Analytics** | See what you wear most (and what you don't) |
+| **Wear Analytics** | See what you wear most — and what you don't |
 | **Calendar Planning** | Schedule outfits for upcoming events |
 | **Smart Shopping** | Discover pieces that complement your wardrobe |
 
 ---
 
-## Quick Start
+### Technical Approach
 
-```bash
-# Install dependencies
-npm install
-
-# Start Expo dev server
-npx expo start
-
-# Run on simulators
-npm run ios
-npm run android
-```
+- **On-Device ML** — privacy-first with TensorFlow.js, no photos leave your phone
+- **Background Removal** — clean product-style photos automatically
+- **Color Analysis** — extract dominant colors for outfit matching
 
 ---
 
-## Tech Stack
+### Tech Stack
 
-| Technology | Purpose |
-|------------|---------|
-| **Expo SDK 54** | React Native framework |
-| **TypeScript** | Type safety |
-| **Redux Toolkit** | State management |
-| **TensorFlow.js** | On-device ML inference |
-| **Expo Image Picker** | Camera & gallery access |
-
----
-
-## Technical Approach
-
-- **On-Device ML** - Privacy-first with TensorFlow.js
-- **Background Removal** - Clean product-style photos
-- **Color Analysis** - Extract dominant colors for outfit matching
-- **Light Theme** - Fashion-forward design with purple (#8B5CF6) accents
+| | |
+|---|---|
+| Expo SDK 54 | React Native framework |
+| TypeScript 5.3 | Type safety |
+| Redux Toolkit | State management |
+| TensorFlow.js | On-device ML inference |
+| Expo Image Picker | Camera & gallery access |
 
 ---
 
-## Project Structure
+### Architecture
 
 ```
 src/
@@ -84,36 +69,35 @@ src/
 ├── screens/        # Wardrobe, Builder, Suggestions
 ├── services/       # Image processing, ML inference
 ├── store/          # Redux state for wardrobe
-├── theme/          # Light theme with purple
+├── theme/          # Light theme with purple (#8B5CF6)
 └── utils/          # Image helpers, color extraction
 ```
 
 ---
 
-## App Info
+### Quick Start
+
+```bash
+npm install && npx expo start
+```
 
 | Key | Value |
 |-----|-------|
-| **Slug** | `threadiq` |
 | **iOS Bundle** | `com.vivacity.threadiq` |
 | **Android Package** | `com.vivacity.threadiq` |
 
 ---
 
-## Future Enhancements
+### On the Roadmap
 
-- Social sharing of outfit inspiration
-- Barcode scanning for automatic item details
-- Integration with fashion retailers
-- Virtual try-on with AR
+- [ ] Social sharing of outfit inspiration
+- [ ] Barcode scanning for automatic item details
+- [ ] Fashion retailer integrations
+- [ ] Virtual try-on with AR
 
 ---
 
 <p align="center">
-  <strong>Built by Vivacity Digital</strong><br>
-  <a href="https://vivacitydigital.com.au">vivacitydigital.com.au</a>
-</p>
-
-<p align="center">
-  <sub>2025 Vivacity Digital. All rights reserved.</sub>
+  <sub>Part of the <strong>Vivacity Digital</strong> app portfolio — <code>vdapp8</code></sub><br>
+  <sub>Built by <a href="https://github.com/BrysonW24">Bryson Walter</a> · <a href="https://vivacitydigital.com.au">vivacitydigital.com.au</a></sub>
 </p>
