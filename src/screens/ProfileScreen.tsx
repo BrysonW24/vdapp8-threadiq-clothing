@@ -3,7 +3,7 @@
  * User profile with wardrobe stats and settings
  */
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { Text, Avatar, List, Divider, Card } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -18,17 +18,21 @@ export default function ProfileScreen() {
   const items = useAppSelector((state) => state.wardrobe.items);
   const user = useAppSelector((state) => state.auth.user);
 
-  // Calculate wardrobe stats
-  const totalItems = items.length;
-  const totalWears = items.reduce((sum, item) => sum + item.wearCount, 0);
-  const favoriteItems = items.filter((item) => item.isFavorite).length;
-  const categoryCounts = items.reduce((acc, item) => {
-    acc[item.category] = (acc[item.category] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
+  // Memoize expensive stats — only recalculates when items change
+  const { totalItems, totalWears, favoriteItems, topCategory } = useMemo(() => {
+    const total = items.length;
+    const wears = items.reduce((sum, item) => sum + item.wearCount, 0);
+    const favorites = items.filter((item) => item.isFavorite).length;
+    const categoryCounts = items.reduce((acc, item) => {
+      acc[item.category] = (acc[item.category] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
 
-  const topCategory = Object.entries(categoryCounts)
-    .sort((a, b) => b[1] - a[1])[0];
+    const top = Object.entries(categoryCounts)
+      .sort((a, b) => b[1] - a[1])[0] || null;
+
+    return { totalItems: total, totalWears: wears, favoriteItems: favorites, topCategory: top };
+  }, [items]);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>

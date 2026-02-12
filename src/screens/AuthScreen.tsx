@@ -1,9 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { Text, TextInput, Button, HelperText, Divider } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 
 type AuthMode = 'login' | 'register';
+
+// Extract regex outside component to avoid recompilation
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function AuthScreen() {
   const navigation = useNavigation();
@@ -16,17 +19,12 @@ export default function AuthScreen() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showPassword, setShowPassword] = useState(false);
 
-  const validateEmail = (email: string): boolean => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  };
-
-  const validateForm = (): boolean => {
+  const validateForm = useCallback((): boolean => {
     const newErrors: Record<string, string> = {};
 
     if (!email) {
       newErrors.email = 'Email is required';
-    } else if (!validateEmail(email)) {
+    } else if (!EMAIL_REGEX.test(email)) {
       newErrors.email = 'Invalid email format';
     }
 
@@ -49,9 +47,9 @@ export default function AuthScreen() {
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
-  };
+  }, [email, password, confirmPassword, name, mode]);
 
-  const handleSubmit = async () => {
+  const handleSubmit = useCallback(async () => {
     if (!validateForm()) {
       return;
     }
@@ -74,17 +72,17 @@ export default function AuthScreen() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [validateForm, email, password, name]);
 
-  const toggleMode = () => {
-    setMode(mode === 'login' ? 'register' : 'login');
+  const toggleMode = useCallback(() => {
+    setMode((prev) => prev === 'login' ? 'register' : 'login');
     setErrors({});
-  };
+  }, []);
 
-  const handleSocialAuth = (provider: string) => {
+  const handleSocialAuth = useCallback((provider: string) => {
     console.log(`${provider} auth pressed`);
     // Implement social auth logic
-  };
+  }, []);
 
   const isLogin = mode === 'login';
 

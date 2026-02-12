@@ -33,6 +33,7 @@ local.properties
 
 # Node
 node_modules/
+node_modules.nosync/
 npm-debug.log
 yarn-error.log
 

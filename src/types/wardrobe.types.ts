@@ -133,6 +133,9 @@ export type InventoryState =
   | 'in-laundry'
   | 'in-dry-cleaning'
   | 'in-repair'
+  | 'lent-out'
+  | 'stored'
+  | 'needs-repair'
   | 'archived'
   | 'donated'
   | 'sold';

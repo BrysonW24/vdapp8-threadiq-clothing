@@ -48,6 +48,8 @@ const CARE_INFO: Record<CareType, { label: string; icon: string }> = {
   'hand-wash': { label: 'Hand Wash', icon: 'hand-wash' },
   'dry-clean': { label: 'Dry Clean Only', icon: 'hanger' },
   'spot-clean': { label: 'Spot Clean', icon: 'spray' },
+  'air-only': { label: 'Air Only', icon: 'weather-windy' },
+  'leather-care': { label: 'Leather Care', icon: 'leather' },
 };
 
 // Inventory state options
@@ -100,7 +102,7 @@ export default function ItemDetailsScreen() {
   }, [dispatch, item.id, item.wearCount]);
 
   const handleStatusChange = useCallback((status: InventoryState) => {
-    dispatch(setInventoryState({ itemId: item.id, state: status }));
+    dispatch(setInventoryState({ itemId: item.id, inventoryState: status }));
     setStatusMenuVisible(false);
   }, [dispatch, item.id]);
 
@@ -127,12 +129,12 @@ export default function ItemDetailsScreen() {
     );
   }, [dispatch, item.id, navigation]);
 
-  const careInfo = CARE_INFO[item.careType];
+  const careInfo = CARE_INFO[item.careProfile.type];
   const currentStatus = INVENTORY_STATES.find((s) => s.id === item.inventoryState);
 
   // Calculate days since last care
-  const daysSinceLastCare = item.lastCareDate
-    ? Math.floor((Date.now() - new Date(item.lastCareDate).getTime()) / (1000 * 60 * 60 * 24))
+  const daysSinceLastCare = item.careProfile.lastCaredAt
+    ? Math.floor((Date.now() - new Date(item.careProfile.lastCaredAt).getTime()) / (1000 * 60 * 60 * 24))
     : null;
 
   return (
@@ -232,8 +234,8 @@ export default function ItemDetailsScreen() {
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
             <Text style={styles.statValue}>
-              {item.lastWornDate
-                ? new Date(item.lastWornDate).toLocaleDateString('en-AU', { month: 'short', day: 'numeric' })
+              {item.lastWornAt
+                ? new Date(item.lastWornAt).toLocaleDateString('en-AU', { month: 'short', day: 'numeric' })
                 : 'Never'}
             </Text>
             <Text style={styles.statLabel}>Last Worn</Text>

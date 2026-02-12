@@ -10,12 +10,12 @@ import BottomTabNavigator from './BottomTabNavigator';
 import { RootStackParamList } from './types';
 import { colors } from '../theme';
 
-// Import screen components
-import AuthScreen from '../screens/AuthScreen';
-import AddItemScreen from '../screens/AddItemScreen';
-import ItemDetailsScreen from '../screens/ItemDetailsScreen';
-import SettingsScreen from '../screens/SettingsScreen';
-import NotificationsScreen from '../screens/NotificationsScreen';
+// Lazy load non-critical screens to reduce initial bundle parse time
+const AuthScreen = React.lazy(() => import('../screens/AuthScreen'));
+const AddItemScreen = React.lazy(() => import('../screens/AddItemScreen'));
+const ItemDetailsScreen = React.lazy(() => import('../screens/ItemDetailsScreen'));
+const SettingsScreen = React.lazy(() => import('../screens/SettingsScreen'));
+const NotificationsScreen = React.lazy(() => import('../screens/NotificationsScreen'));
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 

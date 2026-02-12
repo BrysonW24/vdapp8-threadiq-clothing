@@ -3,7 +3,7 @@
  * Redux state management for wardrobe items and outfits
  */
 
-import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk, createSelector, PayloadAction } from '@reduxjs/toolkit';
 import {
   WardrobeState,
   WardrobeItem,
@@ -373,81 +373,77 @@ const wardrobeSlice = createSlice({
 });
 
 // ============================================
-// SELECTORS
+// SELECTORS (memoized with createSelector)
 // ============================================
 
-export const selectFilteredItems = (state: { wardrobe: WardrobeState }): WardrobeItem[] => {
-  const { items, activeFilters, sortBy } = state.wardrobe;
+const selectWardrobeState = (state: { wardrobe: WardrobeState }) => state.wardrobe;
+const selectItems = (state: { wardrobe: WardrobeState }) => state.wardrobe.items;
+const selectActiveFilters = (state: { wardrobe: WardrobeState }) => state.wardrobe.activeFilters;
+const selectSortBy = (state: { wardrobe: WardrobeState }) => state.wardrobe.sortBy;
 
-  let filtered = [...items];
+export const selectFilteredItems = createSelector(
+  [selectItems, selectActiveFilters, selectSortBy],
+  (items, activeFilters, sortBy): WardrobeItem[] => {
+    let filtered = [...items];
 
-  // Apply filters
-  if (activeFilters.categories.length > 0) {
-    filtered = filtered.filter((item) => activeFilters.categories.includes(item.category));
+    if (activeFilters.categories.length > 0) {
+      filtered = filtered.filter((item) => activeFilters.categories.includes(item.category));
+    }
+    if (activeFilters.colors.length > 0) {
+      filtered = filtered.filter((item) =>
+        item.colors.some((color) => activeFilters.colors.includes(color))
+      );
+    }
+    if (activeFilters.seasons.length > 0) {
+      filtered = filtered.filter((item) =>
+        item.seasons.some((season) => activeFilters.seasons.includes(season))
+      );
+    }
+    if (activeFilters.inventoryStates.length > 0) {
+      filtered = filtered.filter((item) =>
+        activeFilters.inventoryStates.includes(item.inventoryState)
+      );
+    }
+    if (activeFilters.careStates.length > 0) {
+      filtered = filtered.filter((item) => activeFilters.careStates.includes(item.careState));
+    }
+
+    switch (sortBy) {
+      case 'recent':
+        filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        break;
+      case 'name':
+        filtered.sort((a, b) => (a.brand || '').localeCompare(b.brand || ''));
+        break;
+      case 'wearCount':
+        filtered.sort((a, b) => b.wearCount - a.wearCount);
+        break;
+      case 'lastWorn':
+        filtered.sort((a, b) => {
+          if (!a.lastWornAt) return 1;
+          if (!b.lastWornAt) return -1;
+          return new Date(b.lastWornAt).getTime() - new Date(a.lastWornAt).getTime();
+        });
+        break;
+      case 'category':
+        filtered.sort((a, b) => a.category.localeCompare(b.category));
+        break;
+    }
+
+    return filtered;
   }
-  if (activeFilters.colors.length > 0) {
-    filtered = filtered.filter((item) =>
-      item.colors.some((color) => activeFilters.colors.includes(color))
-    );
-  }
-  if (activeFilters.seasons.length > 0) {
-    filtered = filtered.filter((item) =>
-      item.seasons.some((season) => activeFilters.seasons.includes(season))
-    );
-  }
-  if (activeFilters.inventoryStates.length > 0) {
-    filtered = filtered.filter((item) =>
-      activeFilters.inventoryStates.includes(item.inventoryState)
-    );
-  }
-  if (activeFilters.careStates.length > 0) {
-    filtered = filtered.filter((item) => activeFilters.careStates.includes(item.careState));
-  }
+);
 
-  // Apply sorting
-  switch (sortBy) {
-    case 'recent':
-      filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-      break;
-    case 'name':
-      filtered.sort((a, b) => (a.brand || '').localeCompare(b.brand || ''));
-      break;
-    case 'wearCount':
-      filtered.sort((a, b) => b.wearCount - a.wearCount);
-      break;
-    case 'lastWorn':
-      filtered.sort((a, b) => {
-        if (!a.lastWornAt) return 1;
-        if (!b.lastWornAt) return -1;
-        return new Date(b.lastWornAt).getTime() - new Date(a.lastWornAt).getTime();
-      });
-      break;
-    case 'category':
-      filtered.sort((a, b) => a.category.localeCompare(b.category));
-      break;
-  }
+export const selectAvailableItems = createSelector(
+  [selectItems],
+  (items): WardrobeItem[] => items.filter((item) => item.inventoryState === 'available')
+);
 
-  return filtered;
-};
-
-export const selectAvailableItems = (state: { wardrobe: WardrobeState }): WardrobeItem[] => {
-  return state.wardrobe.items.filter((item) => item.inventoryState === 'available');
-};
-
-export const selectItemsByCategory = (
-  state: { wardrobe: WardrobeState },
-  category: ItemCategory
-): WardrobeItem[] => {
-  return state.wardrobe.items.filter(
-    (item) => item.category === category && item.inventoryState === 'available'
-  );
-};
-
-export const selectCareAlerts = (state: { wardrobe: WardrobeState }): WardrobeItem[] => {
-  return state.wardrobe.items.filter(
-    (item) => item.careState === 'due-soon' || item.careState === 'overdue'
-  );
-};
+export const selectCareAlerts = createSelector(
+  [selectItems],
+  (items): WardrobeItem[] =>
+    items.filter((item) => item.careState === 'due-soon' || item.careState === 'overdue')
+);
 
 // ============================================
 // EXPORTS

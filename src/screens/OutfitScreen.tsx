@@ -3,7 +3,7 @@
  * AI-powered outfit suggestions based on context
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
   StyleSheet,
@@ -62,19 +62,17 @@ export default function OutfitScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [currentOutfitIndex, setCurrentOutfitIndex] = useState(0);
 
-  // Generate mock suggestions based on available items
-  const generateSuggestions = useCallback((): OutfitSuggestion[] => {
+  // Memoize suggestions — only recalculates when inputs change
+  const suggestions = useMemo((): OutfitSuggestion[] => {
     if (availableItems.length < 2) return [];
 
-    // Group items by category
     const tops = availableItems.filter((i) => i.category === 'tops');
     const bottoms = availableItems.filter((i) => i.category === 'bottoms');
     const shoes = availableItems.filter((i) => i.category === 'shoes');
     const outerwear = availableItems.filter((i) => i.category === 'outerwear');
 
-    const suggestions: OutfitSuggestion[] = [];
+    const result: OutfitSuggestion[] = [];
 
-    // Generate up to 3 outfit combinations
     for (let i = 0; i < Math.min(3, tops.length); i++) {
       const top = tops[i];
       const bottom = bottoms[i % bottoms.length];
@@ -87,7 +85,7 @@ export default function OutfitScreen() {
           items.push(outerwear[0].id);
         }
 
-        suggestions.push({
+        result.push({
           id: `outfit-${i}`,
           name: `${selectedOccasion.charAt(0).toUpperCase() + selectedOccasion.slice(1)} Look ${i + 1}`,
           items,
@@ -98,10 +96,9 @@ export default function OutfitScreen() {
       }
     }
 
-    return suggestions;
+    return result;
   }, [availableItems, selectedOccasion, selectedWeather]);
 
-  const suggestions = generateSuggestions();
   const currentSuggestion = suggestions[currentOutfitIndex];
 
   const onRefresh = useCallback(async () => {
@@ -112,26 +109,21 @@ export default function OutfitScreen() {
     setRefreshing(false);
   }, []);
 
-  const handleNextOutfit = () => {
-    if (currentOutfitIndex < suggestions.length - 1) {
-      setCurrentOutfitIndex(currentOutfitIndex + 1);
-    }
-  };
+  const handleNextOutfit = useCallback(() => {
+    setCurrentOutfitIndex((prev) => Math.min(prev + 1, suggestions.length - 1));
+  }, [suggestions.length]);
 
-  const handlePreviousOutfit = () => {
-    if (currentOutfitIndex > 0) {
-      setCurrentOutfitIndex(currentOutfitIndex - 1);
-    }
-  };
+  const handlePreviousOutfit = useCallback(() => {
+    setCurrentOutfitIndex((prev) => Math.max(prev - 1, 0));
+  }, []);
 
-  const handleItemPress = (itemId: string) => {
+  const handleItemPress = useCallback((itemId: string) => {
     navigation.navigate('ItemDetails', { itemId });
-  };
+  }, [navigation]);
 
-  const handleWearOutfit = () => {
+  const handleWearOutfit = useCallback(() => {
     // TODO: Log wear for all items in outfit
-    // For now, just show feedback
-  };
+  }, []);
 
   const renderEmptyState = () => (
     <View style={styles.emptyState}>

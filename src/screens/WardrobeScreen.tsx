@@ -3,7 +3,7 @@
  * Main inventory view with grid/list toggle and filtering
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
   StyleSheet,
@@ -25,6 +25,7 @@ import {
   clearFilters,
   toggleFavorite,
 } from '../store/slices/wardrobeSlice';
+import { useDebounce } from '../hooks';
 import { colors, spacing, borderRadius, shadows } from '../theme';
 import type { WardrobeItem, ItemCategory } from '../types/wardrobe.types';
 
@@ -55,23 +56,101 @@ const CATEGORY_LABELS: Record<ItemCategory, string> = {
 
 const ALL_CATEGORIES: ItemCategory[] = ['tops', 'bottoms', 'outerwear', 'suits', 'shoes', 'accessories'];
 
+// Stable references for FlatList props
+const keyExtractor = (item: WardrobeItem) => item.id;
+const LIST_ITEM_HEIGHT = 70 + spacing.sm * 2 + spacing.sm; // image + padding + margin
+const getListItemLayout = (_data: any, index: number) => ({
+  length: LIST_ITEM_HEIGHT,
+  offset: LIST_ITEM_HEIGHT * index,
+  index,
+});
+
+// Memoized grid item to prevent unnecessary re-renders in FlatList
+const GridItem = React.memo(({ item, onPress, onToggleFavorite }: {
+  item: WardrobeItem;
+  onPress: (item: WardrobeItem) => void;
+  onToggleFavorite: (itemId: string) => void;
+}) => (
+  <TouchableOpacity
+    style={styles.gridItem}
+    onPress={() => onPress(item)}
+    activeOpacity={0.7}
+  >
+    <Image source={{ uri: item.imageUri }} style={styles.gridImage} resizeMode="cover" />
+    {item.careState !== 'clean' && (
+      <View style={[styles.careIndicator, { backgroundColor: colors.care[item.careState] }]} />
+    )}
+    <TouchableOpacity
+      style={styles.favoriteButton}
+      onPress={() => onToggleFavorite(item.id)}
+      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+    >
+      <Icon
+        name={item.isFavorite ? 'heart' : 'heart-outline'}
+        size={16}
+        color={item.isFavorite ? colors.status.error : colors.text.inverse}
+      />
+    </TouchableOpacity>
+  </TouchableOpacity>
+));
+
+// Memoized list item to prevent unnecessary re-renders in FlatList
+const ListItem = React.memo(({ item, onPress, onToggleFavorite }: {
+  item: WardrobeItem;
+  onPress: (item: WardrobeItem) => void;
+  onToggleFavorite: (itemId: string) => void;
+}) => (
+  <TouchableOpacity
+    style={styles.listItem}
+    onPress={() => onPress(item)}
+    activeOpacity={0.7}
+  >
+    <Image source={{ uri: item.imageUri }} style={styles.listImage} resizeMode="cover" />
+    <View style={styles.listInfo}>
+      <Text style={styles.listBrand}>{item.brand || item.subcategory}</Text>
+      <Text style={styles.listCategory}>{CATEGORY_LABELS[item.category]}</Text>
+      <View style={styles.listMeta}>
+        <Text style={styles.listWearCount}>{item.wearCount} wears</Text>
+        {item.careState !== 'clean' && (
+          <View style={[styles.listCareChip, { backgroundColor: colors.care[item.careState] }]}>
+            <Text style={styles.listCareText}>
+              {item.careState === 'due-soon' ? 'Care Soon' : 'Overdue'}
+            </Text>
+          </View>
+        )}
+      </View>
+    </View>
+    <TouchableOpacity
+      onPress={() => onToggleFavorite(item.id)}
+      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+    >
+      <Icon
+        name={item.isFavorite ? 'heart' : 'heart-outline'}
+        size={24}
+        color={item.isFavorite ? colors.status.error : colors.text.tertiary}
+      />
+    </TouchableOpacity>
+  </TouchableOpacity>
+));
+
 export default function WardrobeScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<any>>();
   const dispatch = useAppDispatch();
   const items = useAppSelector(selectFilteredItems);
   const { viewMode, activeFilters } = useAppSelector((state) => state.wardrobe);
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearch = useDebounce(searchQuery, 300);
 
-  // Filter items by search query
-  const filteredItems = items.filter((item) => {
-    if (!searchQuery) return true;
-    const query = searchQuery.toLowerCase();
-    return (
+  // Memoize search filtering — only recalculates when items or debounced query change
+  const filteredItems = useMemo(() => {
+    if (!debouncedSearch) return items;
+    const query = debouncedSearch.toLowerCase();
+    return items.filter((item) =>
       item.brand?.toLowerCase().includes(query) ||
       item.subcategory.toLowerCase().includes(query) ||
       item.colors.some((c) => c.toLowerCase().includes(query))
     );
-  });
+  }, [items, debouncedSearch]);
 
   const handleItemPress = useCallback((item: WardrobeItem) => {
     navigation.navigate('ItemDetails', { itemId: item.id });
@@ -85,67 +164,13 @@ export default function WardrobeScreen() {
     dispatch(toggleFavorite(itemId));
   }, [dispatch]);
 
-  const renderGridItem = ({ item }: { item: WardrobeItem }) => (
-    <TouchableOpacity
-      style={styles.gridItem}
-      onPress={() => handleItemPress(item)}
-      activeOpacity={0.7}
-    >
-      <Image source={{ uri: item.imageUri }} style={styles.gridImage} resizeMode="cover" />
+  const renderGridItem = useCallback(({ item }: { item: WardrobeItem }) => (
+    <GridItem item={item} onPress={handleItemPress} onToggleFavorite={handleToggleFavorite} />
+  ), [handleItemPress, handleToggleFavorite]);
 
-      {/* Care indicator */}
-      {item.careState !== 'clean' && (
-        <View style={[styles.careIndicator, { backgroundColor: colors.care[item.careState] }]} />
-      )}
-
-      {/* Favorite button */}
-      <TouchableOpacity
-        style={styles.favoriteButton}
-        onPress={() => handleToggleFavorite(item.id)}
-        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-      >
-        <Icon
-          name={item.isFavorite ? 'heart' : 'heart-outline'}
-          size={16}
-          color={item.isFavorite ? colors.status.error : colors.text.inverse}
-        />
-      </TouchableOpacity>
-    </TouchableOpacity>
-  );
-
-  const renderListItem = ({ item }: { item: WardrobeItem }) => (
-    <TouchableOpacity
-      style={styles.listItem}
-      onPress={() => handleItemPress(item)}
-      activeOpacity={0.7}
-    >
-      <Image source={{ uri: item.imageUri }} style={styles.listImage} resizeMode="cover" />
-      <View style={styles.listInfo}>
-        <Text style={styles.listBrand}>{item.brand || item.subcategory}</Text>
-        <Text style={styles.listCategory}>{CATEGORY_LABELS[item.category]}</Text>
-        <View style={styles.listMeta}>
-          <Text style={styles.listWearCount}>{item.wearCount} wears</Text>
-          {item.careState !== 'clean' && (
-            <View style={[styles.listCareChip, { backgroundColor: colors.care[item.careState] }]}>
-              <Text style={styles.listCareText}>
-                {item.careState === 'due-soon' ? 'Care Soon' : 'Overdue'}
-              </Text>
-            </View>
-          )}
-        </View>
-      </View>
-      <TouchableOpacity
-        onPress={() => handleToggleFavorite(item.id)}
-        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-      >
-        <Icon
-          name={item.isFavorite ? 'heart' : 'heart-outline'}
-          size={24}
-          color={item.isFavorite ? colors.status.error : colors.text.tertiary}
-        />
-      </TouchableOpacity>
-    </TouchableOpacity>
-  );
+  const renderListItem = useCallback(({ item }: { item: WardrobeItem }) => (
+    <ListItem item={item} onPress={handleItemPress} onToggleFavorite={handleToggleFavorite} />
+  ), [handleItemPress, handleToggleFavorite]);
 
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
@@ -240,7 +265,7 @@ export default function WardrobeScreen() {
       {/* Items List */}
       <FlatList
         data={filteredItems}
-        keyExtractor={(item) => item.id}
+        keyExtractor={keyExtractor}
         numColumns={viewMode === 'grid' ? GRID_COLUMNS : 1}
         key={viewMode} // Force re-render when switching view mode
         renderItem={viewMode === 'grid' ? renderGridItem : renderListItem}
@@ -251,6 +276,11 @@ export default function WardrobeScreen() {
         columnWrapperStyle={viewMode === 'grid' ? styles.gridRow : undefined}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={renderEmptyState}
+        initialNumToRender={12}
+        maxToRenderPerBatch={8}
+        windowSize={5}
+        removeClippedSubviews
+        getItemLayout={viewMode === 'list' ? getListItemLayout : undefined}
       />
 
       {/* FAB */}

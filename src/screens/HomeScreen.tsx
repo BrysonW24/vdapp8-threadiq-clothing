@@ -3,7 +3,7 @@
  * Daily view with outfit suggestion, weather context, and quick stats
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
   StyleSheet,
@@ -18,6 +18,7 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAppSelector } from '../store';
+import { selectAvailableItems, selectCareAlerts } from '../store/slices/wardrobeSlice';
 import { colors, spacing, borderRadius, shadows } from '../theme';
 
 // Get greeting based on time of day
@@ -41,15 +42,9 @@ function getFormattedDate(): string {
 export default function HomeScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<any>>();
   const items = useAppSelector((state) => state.wardrobe.items);
+  const availableItems = useAppSelector(selectAvailableItems);
+  const careAlerts = useAppSelector(selectCareAlerts);
   const totalItems = items.length;
-
-  // Filter available items inline instead of using selector
-  const availableItems = items.filter((item) => item.inventoryState === 'available');
-
-  // Filter care alerts inline
-  const careAlerts = items.filter(
-    (item) => item.careState === 'due-soon' || item.careState === 'overdue'
-  );
 
   const [refreshing, setRefreshing] = useState(false);
 
@@ -59,22 +54,24 @@ export default function HomeScreen() {
     setRefreshing(false);
   }, []);
 
-  const handleViewOutfits = () => {
+  const handleViewOutfits = useCallback(() => {
     navigation.navigate('Main', { screen: 'Outfits' });
-  };
+  }, [navigation]);
 
-  const handleViewWardrobe = () => {
+  const handleViewWardrobe = useCallback(() => {
     navigation.navigate('Main', { screen: 'Wardrobe' });
-  };
+  }, [navigation]);
 
-  const handleAddItem = () => {
+  const handleAddItem = useCallback(() => {
     navigation.navigate('AddItem');
-  };
+  }, [navigation]);
 
-  // Get a random suggestion item for today
-  const todayItem = availableItems.length > 0
-    ? availableItems[Math.floor(Math.random() * availableItems.length)]
-    : null;
+  // Memoize today's suggestion so it doesn't change on every re-render
+  const todayItem = useMemo(() =>
+    availableItems.length > 0
+      ? availableItems[Math.floor(Math.random() * availableItems.length)]
+      : null,
+  [availableItems]);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
