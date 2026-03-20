@@ -6,3 +6,8 @@ export { default as List } from './List';
 export { default as Modal } from './Modal';
 export { default as Chip } from './Chip';
 export { default as Badge } from './Badge';
+export { default as StyleIconCard } from './StyleIconCard';
+export { default as TrendingItemCard } from './TrendingItemCard';
+export { default as FollowButton } from './FollowButton';
+export { default as AffiliateLinkRow } from './AffiliateLinkRow';
+export { default as PurchaseCard } from './PurchaseCard';

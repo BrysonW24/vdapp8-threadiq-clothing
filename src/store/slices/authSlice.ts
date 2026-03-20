@@ -24,6 +24,8 @@ const initialState: AuthState = {
   isLoading: false,
   error: null,
   onboardingComplete: false,
+  shareWardrobe: false,
+  communityProfileId: null,
 };
 
 // Async thunks
@@ -113,6 +115,12 @@ const authSlice = createSlice({
     setError: (state, action: PayloadAction<string>) => {
       state.error = action.payload;
     },
+    setShareWardrobe: (state, action: PayloadAction<boolean>) => {
+      state.shareWardrobe = action.payload;
+    },
+    setCommunityProfileId: (state, action: PayloadAction<string | null>) => {
+      state.communityProfileId = action.payload;
+    },
   },
   extraReducers: (builder) => {
     // Sign up with email
@@ -198,6 +206,8 @@ export const {
   setOnboardingComplete,
   clearError,
   setError,
+  setShareWardrobe,
+  setCommunityProfileId,
 } = authSlice.actions;
 
 export default authSlice.reducer;

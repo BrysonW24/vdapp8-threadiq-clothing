@@ -20,16 +20,28 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 // Import reducers
 import authReducer from './slices/authSlice';
 import wardrobeReducer from './slices/wardrobeSlice';
+import discoverReducer from './slices/discoverSlice';
+import shopReducer from './slices/shopSlice';
+import weatherReducer from './slices/weatherSlice';
+import wishlistReducer from './slices/wishlistSlice';
+import calendarReducer from './slices/calendarSlice';
+import avatarReducer from './slices/avatarSlice';
 
 const rootReducer = combineReducers({
   auth: authReducer,
   wardrobe: wardrobeReducer,
+  discover: discoverReducer,
+  shop: shopReducer,
+  weather: weatherReducer,
+  wishlist: wishlistReducer,
+  calendar: calendarReducer,
+  avatar: avatarReducer,
 });
 
 const persistConfig = {
   key: 'threadiq-root',
   storage: AsyncStorage,
-  whitelist: ['wardrobe', 'auth'], // persist both slices
+  whitelist: ['wardrobe', 'auth', 'discover', 'shop', 'weather', 'wishlist', 'calendar', 'avatar'],
 };
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);

@@ -1,9 +1,9 @@
 /**
  * ThreadIQ Today Screen (Home)
- * Daily view with outfit suggestion, weather context, and quick stats
+ * Daily view with outfit suggestion, weather context, Dress Like X, trending, and quick stats
  */
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -11,14 +11,31 @@ import {
   TouchableOpacity,
   Image,
   RefreshControl,
+  FlatList,
 } from 'react-native';
-import { Text, Card, Button, IconButton } from 'react-native-paper';
+import { Text, Card, Button, IconButton, ActivityIndicator } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useAppSelector } from '../store';
+import { useAppSelector, useAppDispatch } from '../store';
 import { selectAvailableItems, selectCareAlerts } from '../store/slices/wardrobeSlice';
+import {
+  fetchFeaturedProfiles,
+  fetchTrendingItems,
+  toggleFollowProfile,
+  selectFeaturedProfiles,
+  selectTrendingItems,
+  selectFollowedProfileIds,
+} from '../store/slices/discoverSlice';
+import { selectActivePurchases } from '../store/slices/shopSlice';
+import { getProfileById } from '../data/discoverMockData';
+import StyleIconCard from '../components/StyleIconCard';
+import TrendingItemCard from '../components/TrendingItemCard';
+import PurchaseCard from '../components/PurchaseCard';
+import WeatherCard from '../components/WeatherCard';
+import affiliateService from '../services/affiliate/AffiliateService';
+import { TrendingItem, AffiliateLink } from '../types/discover.types';
 import { colors, spacing, borderRadius, shadows } from '../theme';
 
 // Get greeting based on time of day
@@ -41,18 +58,38 @@ function getFormattedDate(): string {
 
 export default function HomeScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<any>>();
+  const dispatch = useAppDispatch();
   const items = useAppSelector((state) => state.wardrobe.items);
   const availableItems = useAppSelector(selectAvailableItems);
   const careAlerts = useAppSelector(selectCareAlerts);
   const totalItems = items.length;
 
+  // Discover state
+  const featuredProfiles = useAppSelector(selectFeaturedProfiles);
+  const trendingItems = useAppSelector(selectTrendingItems);
+  const followedProfileIds = useAppSelector(selectFollowedProfileIds);
+  const featuredLoading = useAppSelector((state) => state.discover.featuredProfilesLoading);
+  const trendingLoading = useAppSelector((state) => state.discover.trendingItemsLoading);
+
+  // Shop/purchase state
+  const activePurchases = useAppSelector(selectActivePurchases);
+
   const [refreshing, setRefreshing] = useState(false);
+
+  // Load discover data on mount
+  useEffect(() => {
+    dispatch(fetchFeaturedProfiles(10));
+    dispatch(fetchTrendingItems(10));
+  }, [dispatch]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    await Promise.all([
+      dispatch(fetchFeaturedProfiles(10)),
+      dispatch(fetchTrendingItems(10)),
+    ]);
     setRefreshing(false);
-  }, []);
+  }, [dispatch]);
 
   const handleViewOutfits = useCallback(() => {
     navigation.navigate('Main', { screen: 'Outfits' });
@@ -66,12 +103,84 @@ export default function HomeScreen() {
     navigation.navigate('AddItem');
   }, [navigation]);
 
+  const handleViewDiscover = useCallback(() => {
+    navigation.navigate('DiscoverFeed');
+  }, [navigation]);
+
+  const handleProfilePress = useCallback(
+    (profileId: string) => {
+      navigation.navigate('StyleProfile', { profileId });
+    },
+    [navigation],
+  );
+
+  const handleFollowToggle = useCallback(
+    (profileId: string) => {
+      dispatch(toggleFollowProfile(profileId));
+    },
+    [dispatch],
+  );
+
+  const handleTrendingItemPress = useCallback(
+    (trendingItemId: string, sourceProfileId: string) => {
+      navigation.navigate('ItemMatch', { trendingItemId, sourceProfileId });
+    },
+    [navigation],
+  );
+
+  const handleShopPress = useCallback(
+    async (item: TrendingItem, link: AffiliateLink) => {
+      const purchaseId = await affiliateService.openShopLink(
+        link,
+        {
+          trendingItemId: item.id,
+          productName: item.name,
+          brand: item.brand,
+          imageUri: item.imageUri,
+          suggestedCategory: item.category,
+          suggestedColors: item.colors,
+        },
+        item.sourceProfileId,
+        'home',
+      );
+      if (purchaseId) {
+        setTimeout(() => navigation.navigate('PurchaseConfirm', { purchaseId }), 800);
+      }
+    },
+    [navigation],
+  );
+
+  const handlePurchasePress = useCallback(
+    (purchaseId: string) => {
+      navigation.navigate('PurchaseConfirm', { purchaseId });
+    },
+    [navigation],
+  );
+
+  const handleViewAllPurchases = useCallback(() => {
+    navigation.navigate('RecentPurchases');
+  }, [navigation]);
+
   // Memoize today's suggestion so it doesn't change on every re-render
-  const todayItem = useMemo(() =>
-    availableItems.length > 0
-      ? availableItems[Math.floor(Math.random() * availableItems.length)]
-      : null,
-  [availableItems]);
+  const todayItem = useMemo(
+    () =>
+      availableItems.length > 0
+        ? availableItems[Math.floor(Math.random() * availableItems.length)]
+        : null,
+    [availableItems],
+  );
+
+  const renderStyleIconCard = useCallback(
+    ({ item }: { item: (typeof featuredProfiles)[0] }) => (
+      <StyleIconCard
+        profile={item}
+        isFollowing={followedProfileIds.includes(item.id)}
+        onPress={() => handleProfilePress(item.id)}
+        onFollowToggle={() => handleFollowToggle(item.id)}
+      />
+    ),
+    [followedProfileIds, handleProfilePress, handleFollowToggle],
+  );
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -107,21 +216,8 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* Weather Card */}
-        <Card style={styles.weatherCard}>
-          <Card.Content style={styles.weatherContent}>
-            <View style={styles.weatherLeft}>
-              <Icon name="weather-sunny" size={40} color={colors.accent.main} />
-              <View style={styles.weatherInfo}>
-                <Text style={styles.weatherTemp}>24°C</Text>
-                <Text style={styles.weatherDesc}>Sunny, perfect for layers</Text>
-              </View>
-            </View>
-            <View style={styles.weatherRight}>
-              <Text style={styles.weatherLocation}>Sydney</Text>
-            </View>
-          </Card.Content>
-        </Card>
+        {/* Weather Card — live from device GPS */}
+        <WeatherCard />
 
         {/* Today's Look Section */}
         <View style={styles.section}>
@@ -186,6 +282,93 @@ export default function HomeScreen() {
             </TouchableOpacity>
           )}
         </View>
+
+        {/* Dress Like... Section */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <View style={styles.sectionTitleRow}>
+              <View style={styles.sectionAccent} />
+              <Text style={styles.sectionTitle}>Dress Like...</Text>
+            </View>
+            <TouchableOpacity onPress={handleViewDiscover} style={styles.seeAllButton}>
+              <Text style={styles.sectionLink}>See all</Text>
+              <Icon name="chevron-right" size={16} color="#FF6B35" />
+            </TouchableOpacity>
+          </View>
+          {featuredLoading ? (
+            <ActivityIndicator size="small" color="#FF6B35" />
+          ) : (
+            <FlatList
+              data={featuredProfiles}
+              renderItem={renderStyleIconCard}
+              keyExtractor={(item) => item.id}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.profileScroll}
+              ItemSeparatorComponent={() => <View style={{ width: 14 }} />}
+            />
+          )}
+        </View>
+
+        {/* Trending Now Section */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <View style={styles.sectionTitleRow}>
+              <View style={[styles.sectionAccent, { backgroundColor: '#E74C3C' }]} />
+              <Text style={styles.sectionTitle}>Trending Now</Text>
+              <View style={styles.trendingLive}>
+                <View style={styles.liveDot} />
+                <Text style={styles.liveText}>LIVE</Text>
+              </View>
+            </View>
+            <TouchableOpacity onPress={handleViewDiscover} style={styles.seeAllButton}>
+              <Text style={styles.sectionLink}>See all</Text>
+              <Icon name="chevron-right" size={16} color="#FF6B35" />
+            </TouchableOpacity>
+          </View>
+          {trendingLoading ? (
+            <ActivityIndicator size="small" color={colors.accent.main} />
+          ) : (
+            trendingItems.slice(0, 3).map((item) => (
+              <TrendingItemCard
+                key={item.id}
+                item={item}
+                sourceProfile={getProfileById(item.sourceProfileId)}
+                onPress={() =>
+                  handleTrendingItemPress(item.id, item.sourceProfileId)
+                }
+                onShopPress={
+                  item.affiliateLinks.length > 0
+                    ? () => handleShopPress(item, item.affiliateLinks[0])
+                    : undefined
+                }
+              />
+            ))
+          )}
+        </View>
+
+        {/* Recent Purchases */}
+        {activePurchases.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionTitleRow}>
+                <View style={[styles.sectionAccent, { backgroundColor: '#FF6B35' }]} />
+                <Text style={styles.sectionTitle}>Recent Purchases</Text>
+              </View>
+              <TouchableOpacity onPress={handleViewAllPurchases} style={styles.seeAllButton}>
+                <Text style={styles.sectionLink}>See all</Text>
+                <Icon name="chevron-right" size={16} color="#FF6B35" />
+              </TouchableOpacity>
+            </View>
+            {activePurchases.slice(0, 2).map((purchase) => (
+              <PurchaseCard
+                key={purchase.id}
+                purchase={purchase}
+                onPress={() => handlePurchasePress(purchase.id)}
+              />
+            ))}
+          </View>
+        )}
 
         {/* Quick Stats */}
         <View style={styles.section}>
@@ -280,39 +463,6 @@ const styles = StyleSheet.create({
   headerActions: {
     flexDirection: 'row',
   },
-  weatherCard: {
-    marginHorizontal: spacing.base,
-    backgroundColor: colors.card.background,
-    borderRadius: borderRadius.lg,
-  },
-  weatherContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  weatherLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  weatherInfo: {
-    marginLeft: spacing.md,
-  },
-  weatherTemp: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: colors.text.primary,
-  },
-  weatherDesc: {
-    fontSize: 13,
-    color: colors.text.secondary,
-  },
-  weatherRight: {
-    alignItems: 'flex-end',
-  },
-  weatherLocation: {
-    fontSize: 14,
-    color: colors.text.tertiary,
-  },
   section: {
     marginTop: spacing.xl,
     paddingHorizontal: spacing.base,
@@ -321,17 +471,55 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.md,
+    marginBottom: 16,
+  },
+  sectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  sectionAccent: {
+    width: 4,
+    height: 22,
+    backgroundColor: '#FF6B35',
+    borderRadius: 2,
+    marginRight: 10,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 20,
+    fontWeight: '800',
     color: colors.text.primary,
+    letterSpacing: -0.5,
+  },
+  trendingLive: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E74C3C15',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+    marginLeft: 10,
+  },
+  liveDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#E74C3C',
+    marginRight: 4,
+  },
+  liveText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#E74C3C',
+    letterSpacing: 0.5,
+  },
+  seeAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   sectionLink: {
-    fontSize: 14,
-    color: colors.accent.main,
-    fontWeight: '500',
+    fontSize: 13,
+    color: '#FF6B35',
+    fontWeight: '700',
   },
   emptyCard: {
     backgroundColor: colors.card.background,
@@ -416,6 +604,9 @@ const styles = StyleSheet.create({
   viewOutfitButtonText: {
     fontSize: 13,
     fontWeight: '600',
+  },
+  profileScroll: {
+    paddingRight: spacing.base,
   },
   statsGrid: {
     flexDirection: 'row',

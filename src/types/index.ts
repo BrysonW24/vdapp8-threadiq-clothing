@@ -19,3 +19,10 @@ export interface PaginatedResponse<T> {
   totalPages: number;
   total: number;
 }
+
+export * from './discover.types';
+export * from './shop.types';
+export * from './weather.types';
+export * from './wishlist.types';
+export * from './calendar.types';
+export * from './avatar.types';

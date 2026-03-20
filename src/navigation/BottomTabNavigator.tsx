@@ -1,6 +1,6 @@
 /**
  * ThreadIQ Bottom Tab Navigator
- * Main tabs: Today, Wardrobe, Outfits, Profile
+ * Main tabs: Today, Wardrobe, Outfits, Events, Profile
  */
 
 import React from 'react';
@@ -11,6 +11,7 @@ import { colors } from '../theme';
 import HomeScreen from '../screens/HomeScreen';
 import WardrobeScreen from '../screens/WardrobeScreen';
 import OutfitScreen from '../screens/OutfitScreen';
+import CalendarScreen from '../screens/CalendarScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import { BottomTabParamList } from './types';
 
@@ -28,7 +29,7 @@ export default function BottomTabNavigator() {
           paddingTop: 4,
         },
         tabBarLabelStyle: {
-          fontSize: 11,
+          fontSize: 10,
           fontWeight: '500' as const,
         },
         headerShown: false,
@@ -61,6 +62,16 @@ export default function BottomTabNavigator() {
           tabBarLabel: 'Outfits',
           tabBarIcon: ({ color, size }) => (
             <Icon name="tshirt-crew-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="Events"
+        component={CalendarScreen}
+        options={{
+          tabBarLabel: 'Events',
+          tabBarIcon: ({ color, size }) => (
+            <Icon name="calendar-star" size={size} color={color} />
           ),
         }}
       />

@@ -1,6 +1,7 @@
 /**
  * ThreadIQ Add Item Screen
- * Capture or select a photo, then classify the item
+ * Three input methods: Camera, Photo Library, or Product URL
+ * URL flow scrapes product data and offers Add to Wardrobe / Wishlist
  */
 
 import React, { useState, useCallback } from 'react';
@@ -11,6 +12,8 @@ import {
   TouchableOpacity,
   Image,
   Alert,
+  ActivityIndicator,
+  Keyboard,
 } from 'react-native';
 import { Text, Button, TextInput, Chip } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -19,15 +22,16 @@ import { useNavigation } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
 import { useAppDispatch } from '../store';
 import { addItem } from '../store/slices/wardrobeSlice';
+import { addWishlistItem } from '../store/slices/wishlistSlice';
+import urlScraperService from '../services/urlScraper/UrlScraperService';
+import type { ScrapedProduct } from '../services/urlScraper/UrlScraperService';
+import UrlPreviewCard from '../components/UrlPreviewCard';
 import { colors, spacing, borderRadius, shadows } from '../theme';
 import type {
   ItemCategory,
   ItemSubcategory,
   ItemColor,
-  ItemPattern,
-  ItemMaterial,
   CareType,
-  FormalityScore,
 } from '../types/wardrobe.types';
 
 // ============================================
@@ -114,14 +118,14 @@ const CARE_TYPES: { id: CareType; label: string; icon: string }[] = [
 // COMPONENT
 // ============================================
 
-type Step = 'photo' | 'category' | 'details';
+type Step = 'source' | 'url-input' | 'url-preview' | 'category' | 'details';
 
 export default function AddItemScreen() {
   const navigation = useNavigation();
   const dispatch = useAppDispatch();
 
   // Form state
-  const [step, setStep] = useState<Step>('photo');
+  const [step, setStep] = useState<Step>('source');
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [category, setCategory] = useState<ItemCategory | null>(null);
   const [subcategory, setSubcategory] = useState<ItemSubcategory | null>(null);
@@ -130,6 +134,12 @@ export default function AddItemScreen() {
   const [size, setSize] = useState('');
   const [careType, setCareType] = useState<CareType>('machine-wash');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // URL flow state
+  const [urlInput, setUrlInput] = useState('');
+  const [isScrapingUrl, setIsScrapingUrl] = useState(false);
+  const [scrapedProduct, setScrapedProduct] = useState<ScrapedProduct | null>(null);
+  const [sourceUrl, setSourceUrl] = useState<string | null>(null);
 
   // Image picker
   const pickImage = useCallback(async (useCamera: boolean) => {
@@ -141,7 +151,7 @@ export default function AddItemScreen() {
       if (!permissionResult.granted) {
         Alert.alert(
           'Permission Required',
-          `Please grant ${useCamera ? 'camera' : 'photo library'} access to add items.`
+          `Please grant ${useCamera ? 'camera' : 'photo library'} access to add items.`,
         );
         return;
       }
@@ -169,14 +179,79 @@ export default function AddItemScreen() {
     }
   }, []);
 
+  // URL scrape
+  const handleScrapeUrl = useCallback(async () => {
+    if (!urlInput.trim()) return;
+    Keyboard.dismiss();
+
+    if (!urlScraperService.isValidProductUrl(urlInput.trim())) {
+      Alert.alert('Invalid URL', 'Please enter a valid product URL (https://...)');
+      return;
+    }
+
+    setIsScrapingUrl(true);
+    try {
+      const product = await urlScraperService.scrapeUrl(urlInput.trim());
+      setScrapedProduct(product);
+      setSourceUrl(urlInput.trim());
+
+      // Pre-fill form from scraped data
+      if (product.imageUrl) setImageUri(product.imageUrl);
+      if (product.brand) setBrand(product.brand);
+      if (product.suggestedCategory) setCategory(product.suggestedCategory);
+      if (product.suggestedColors?.length) setSelectedColors(product.suggestedColors);
+
+      setStep('url-preview');
+    } catch (error) {
+      Alert.alert('Scrape Failed', 'Could not fetch product data. Try a different URL.');
+    } finally {
+      setIsScrapingUrl(false);
+    }
+  }, [urlInput]);
+
+  // Add scraped product directly to wishlist
+  const handleAddToWishlist = useCallback(async () => {
+    if (!scrapedProduct) return;
+    setIsSubmitting(true);
+    try {
+      await dispatch(
+        addWishlistItem({
+          name: scrapedProduct.title,
+          brand: scrapedProduct.brand,
+          imageUri: scrapedProduct.imageUrl || 'https://via.placeholder.com/400x533',
+          category: scrapedProduct.suggestedCategory || 'tops',
+          colors: scrapedProduct.suggestedColors || [],
+          price: scrapedProduct.price,
+          currency: scrapedProduct.currency,
+          salePrice: scrapedProduct.salePrice,
+          retailerName: scrapedProduct.siteName,
+          productUrl: sourceUrl || undefined,
+          addedFromUrl: true,
+        }),
+      ).unwrap();
+      Alert.alert('Added to Wishlist!', `${scrapedProduct.title} has been wishlisted.`, [
+        { text: 'OK', onPress: () => navigation.goBack() },
+      ]);
+    } catch {
+      Alert.alert('Error', 'Failed to add to wishlist.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [scrapedProduct, sourceUrl, dispatch, navigation]);
+
+  // Continue from URL preview to wardrobe form (category → details)
+  const handleAddToWardrobe = useCallback(() => {
+    setStep('category');
+  }, []);
+
   // Toggle color selection
   const toggleColor = useCallback((colorId: ItemColor) => {
     setSelectedColors((prev) =>
-      prev.includes(colorId) ? prev.filter((c) => c !== colorId) : [...prev, colorId]
+      prev.includes(colorId) ? prev.filter((c) => c !== colorId) : [...prev, colorId],
     );
   }, []);
 
-  // Submit item
+  // Submit item to wardrobe
   const handleSubmit = useCallback(async () => {
     if (!imageUri || !category || !subcategory || selectedColors.length === 0) {
       Alert.alert('Missing Information', 'Please fill in all required fields.');
@@ -184,7 +259,6 @@ export default function AddItemScreen() {
     }
 
     setIsSubmitting(true);
-
     try {
       await dispatch(
         addItem({
@@ -195,7 +269,8 @@ export default function AddItemScreen() {
           brand: brand || undefined,
           size: size || undefined,
           careType,
-        })
+          sourceUrl: sourceUrl || undefined,
+        }),
       ).unwrap();
 
       Alert.alert('Success', 'Item added to your wardrobe!', [
@@ -206,22 +281,26 @@ export default function AddItemScreen() {
     } finally {
       setIsSubmitting(false);
     }
-  }, [imageUri, category, subcategory, selectedColors, brand, size, careType, dispatch, navigation]);
+  }, [imageUri, category, subcategory, selectedColors, brand, size, careType, sourceUrl, dispatch, navigation]);
 
-  // Render photo step
-  const renderPhotoStep = () => (
+  // ============================================
+  // STEP RENDERERS
+  // ============================================
+
+  // Step 1: Source selection (Camera / Library / URL)
+  const renderSourceStep = () => (
     <View style={styles.stepContainer}>
-      <Text style={styles.stepTitle}>Add a Photo</Text>
-      <Text style={styles.stepSubtitle}>Take a photo or choose from your library</Text>
+      <Text style={styles.stepTitle}>Add an Item</Text>
+      <Text style={styles.stepSubtitle}>Choose how to add your item</Text>
 
-      <View style={styles.photoOptions}>
+      <View style={styles.sourceOptions}>
         <TouchableOpacity
           style={styles.photoOption}
           onPress={() => pickImage(true)}
           activeOpacity={0.7}
         >
           <View style={styles.photoOptionIcon}>
-            <Icon name="camera" size={40} color={colors.primary.main} />
+            <Icon name="camera" size={36} color={colors.primary.main} />
           </View>
           <Text style={styles.photoOptionText}>Take Photo</Text>
         </TouchableOpacity>
@@ -232,15 +311,95 @@ export default function AddItemScreen() {
           activeOpacity={0.7}
         >
           <View style={styles.photoOptionIcon}>
-            <Icon name="image" size={40} color={colors.primary.main} />
+            <Icon name="image" size={36} color={colors.primary.main} />
           </View>
-          <Text style={styles.photoOptionText}>Choose from Library</Text>
+          <Text style={styles.photoOptionText}>Photo Library</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.photoOption}
+          onPress={() => setStep('url-input')}
+          activeOpacity={0.7}
+        >
+          <View style={[styles.photoOptionIcon, { backgroundColor: `${colors.accent.main}15` }]}>
+            <Icon name="link-variant" size={36} color={colors.accent.main} />
+          </View>
+          <Text style={styles.photoOptionText}>Paste URL</Text>
         </TouchableOpacity>
       </View>
     </View>
   );
 
-  // Render category step
+  // Step 1b: URL input
+  const renderUrlInputStep = () => (
+    <View style={styles.stepContainer}>
+      <Text style={styles.stepTitle}>Add from URL</Text>
+      <Text style={styles.stepSubtitle}>Paste a product link to auto-fill details</Text>
+
+      <View style={styles.urlInputContainer}>
+        <TextInput
+          mode="outlined"
+          value={urlInput}
+          onChangeText={setUrlInput}
+          placeholder="https://www.theiconic.com.au/product..."
+          style={styles.urlTextInput}
+          outlineColor={colors.border.default}
+          activeOutlineColor={colors.accent.main}
+          left={<TextInput.Icon icon="link-variant" color={colors.text.tertiary} />}
+          autoCapitalize="none"
+          autoCorrect={false}
+          keyboardType="url"
+          returnKeyType="go"
+          onSubmitEditing={handleScrapeUrl}
+        />
+
+        <Button
+          mode="contained"
+          onPress={handleScrapeUrl}
+          loading={isScrapingUrl}
+          disabled={isScrapingUrl || !urlInput.trim()}
+          style={styles.fetchButton}
+          labelStyle={styles.fetchButtonText}
+          icon="magnify"
+        >
+          {isScrapingUrl ? 'Fetching...' : 'Fetch Product'}
+        </Button>
+
+        {/* Supported retailers hint */}
+        <View style={styles.retailerHint}>
+          <Text style={styles.retailerHintTitle}>Works great with:</Text>
+          <Text style={styles.retailerHintText}>
+            THE ICONIC, ASOS, Nike, Zara, H&M, Farfetch, SSENSE, Mr Porter, and more
+          </Text>
+        </View>
+      </View>
+
+      <TouchableOpacity
+        style={styles.backLink}
+        onPress={() => { setStep('source'); setUrlInput(''); }}
+      >
+        <Icon name="arrow-left" size={16} color={colors.text.secondary} />
+        <Text style={styles.backLinkText}>Back to options</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  // Step 2 (URL flow): Preview scraped product
+  const renderUrlPreviewStep = () => (
+    <ScrollView style={styles.stepContainer} showsVerticalScrollIndicator={false}>
+      {scrapedProduct && (
+        <View style={{ marginTop: spacing.lg, marginBottom: spacing['3xl'] }}>
+          <UrlPreviewCard
+            product={scrapedProduct}
+            onAddToWardrobe={handleAddToWardrobe}
+            onAddToWishlist={handleAddToWishlist}
+          />
+        </View>
+      )}
+    </ScrollView>
+  );
+
+  // Step 3: Category selection (shared between photo and URL flows)
   const renderCategoryStep = () => (
     <ScrollView style={styles.stepContainer} showsVerticalScrollIndicator={false}>
       {imageUri && (
@@ -248,7 +407,7 @@ export default function AddItemScreen() {
           <Image source={{ uri: imageUri }} style={styles.imagePreview} resizeMode="cover" />
           <TouchableOpacity
             style={styles.changePhotoButton}
-            onPress={() => setStep('photo')}
+            onPress={() => setStep('source')}
           >
             <Icon name="camera-retake" size={20} color={colors.text.inverse} />
           </TouchableOpacity>
@@ -313,7 +472,7 @@ export default function AddItemScreen() {
     </ScrollView>
   );
 
-  // Render details step
+  // Step 4: Details form
   const renderDetailsStep = () => (
     <ScrollView style={styles.stepContainer} showsVerticalScrollIndicator={false}>
       <Text style={styles.sectionTitle}>Colors *</Text>
@@ -399,6 +558,22 @@ export default function AddItemScreen() {
     </ScrollView>
   );
 
+  // Step indicator dots
+  const getStepIndex = (): number => {
+    switch (step) {
+      case 'source':
+      case 'url-input':
+        return 0;
+      case 'url-preview':
+      case 'category':
+        return 1;
+      case 'details':
+        return 2;
+      default:
+        return 0;
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
@@ -412,20 +587,18 @@ export default function AddItemScreen() {
 
       {/* Steps */}
       <View style={styles.stepsIndicator}>
-        {(['photo', 'category', 'details'] as Step[]).map((s, index) => (
+        {[0, 1, 2].map((i) => (
           <View
-            key={s}
-            style={[
-              styles.stepDot,
-              (step === s || ['photo', 'category', 'details'].indexOf(step) >= index) &&
-                styles.stepDotActive,
-            ]}
+            key={i}
+            style={[styles.stepDot, getStepIndex() >= i && styles.stepDotActive]}
           />
         ))}
       </View>
 
       {/* Content */}
-      {step === 'photo' && renderPhotoStep()}
+      {step === 'source' && renderSourceStep()}
+      {step === 'url-input' && renderUrlInputStep()}
+      {step === 'url-preview' && renderUrlPreviewStep()}
       {step === 'category' && renderCategoryStep()}
       {step === 'details' && renderDetailsStep()}
     </SafeAreaView>
@@ -487,19 +660,20 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
     textAlign: 'center',
   },
-  photoOptions: {
+  sourceOptions: {
     flexDirection: 'row',
     justifyContent: 'center',
     gap: spacing.lg,
     marginTop: spacing['3xl'],
+    flexWrap: 'wrap',
   },
   photoOption: {
     alignItems: 'center',
-    width: 140,
+    width: 100,
   },
   photoOptionIcon: {
-    width: 100,
-    height: 100,
+    width: 88,
+    height: 88,
     borderRadius: borderRadius.xl,
     backgroundColor: colors.background.secondary,
     justifyContent: 'center',
@@ -507,11 +681,56 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   photoOptionText: {
-    fontSize: 14,
+    fontSize: 13,
     color: colors.text.primary,
     fontWeight: '500',
     textAlign: 'center',
   },
+  // URL input
+  urlInputContainer: {
+    marginTop: spacing['2xl'],
+  },
+  urlTextInput: {
+    backgroundColor: colors.background.primary,
+  },
+  fetchButton: {
+    marginTop: spacing.lg,
+    backgroundColor: colors.accent.main,
+    borderRadius: borderRadius.lg,
+  },
+  fetchButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  retailerHint: {
+    marginTop: spacing.xl,
+    padding: spacing.md,
+    backgroundColor: colors.background.secondary,
+    borderRadius: borderRadius.lg,
+  },
+  retailerHintTitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.text.secondary,
+    marginBottom: 4,
+  },
+  retailerHintText: {
+    fontSize: 12,
+    color: colors.text.tertiary,
+    lineHeight: 18,
+  },
+  backLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginTop: spacing.xl,
+    alignSelf: 'center',
+  },
+  backLinkText: {
+    fontSize: 14,
+    color: colors.text.secondary,
+  },
+  // Shared
   imagePreviewContainer: {
     alignItems: 'center',
     marginTop: spacing.lg,

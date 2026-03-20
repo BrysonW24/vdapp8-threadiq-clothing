@@ -2,9 +2,13 @@ import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
 import { Text, List, Switch, Divider, Button } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
+import { useAppSelector, useAppDispatch } from '../store';
+import { setShareWardrobe } from '../store/slices/authSlice';
 
 export default function SettingsScreen() {
   const navigation = useNavigation();
+  const dispatch = useAppDispatch();
+  const shareWardrobe = useAppSelector((state) => state.auth.shareWardrobe);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [soundEnabled, setSoundEnabled] = useState(true);
@@ -64,6 +68,24 @@ export default function SettingsScreen() {
               <Switch
                 value={soundEnabled}
                 onValueChange={setSoundEnabled}
+              />
+            )}
+          />
+          <Divider />
+        </View>
+
+        <View style={styles.section}>
+          <Text variant="titleMedium" style={styles.sectionTitle}>
+            Community & Sharing
+          </Text>
+          <List.Item
+            title="Share My Wardrobe"
+            description="Allow other ThreadIQ users to see your wardrobe and outfits"
+            left={(props) => <List.Icon {...props} icon="account-group" />}
+            right={() => (
+              <Switch
+                value={shareWardrobe}
+                onValueChange={(value) => dispatch(setShareWardrobe(value))}
               />
             )}
           />

@@ -19,7 +19,10 @@
       "bundleIdentifier": "com.vivacity.threadiq",
       "infoPlist": {
         "NSCameraUsageDescription": "ThreadIQ needs camera access to photograph your clothing items",
-        "NSPhotoLibraryUsageDescription": "ThreadIQ needs photo library access to add clothing items from your photos"
+        "NSPhotoLibraryUsageDescription": "ThreadIQ needs photo library access to add clothing items from your photos",
+        "NSLocationWhenInUseUsageDescription": "ThreadIQ uses your location for weather-based outfit suggestions",
+        "NSCalendarsUsageDescription": "ThreadIQ reads your calendar to help plan outfits for upcoming events",
+        "NSCalendarsFullAccessUsageDescription": "ThreadIQ reads your calendar to help plan outfits for upcoming events"
       }
     },
     "android": {
@@ -48,7 +51,21 @@
         {
           "photosPermission": "ThreadIQ needs photo library access to add clothing items from your photos"
         }
-      ]
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "ThreadIQ uses your location for weather-based outfit suggestions"
+        }
+      ],
+      [
+        "expo-calendar",
+        {
+          "calendarPermission": "ThreadIQ reads your calendar to help plan outfits for upcoming events"
+        }
+      ],
+      "expo-notifications",
+      "expo-sharing"
     ]
   }
 }

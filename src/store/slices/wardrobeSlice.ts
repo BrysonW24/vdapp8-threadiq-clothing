@@ -104,6 +104,7 @@ export const addItem = createAsyncThunk(
         condition: 'new',
         inventoryState: 'available',
         imageUri: payload.imageUri,
+        sourceUrl: payload.sourceUrl,
         careProfile: {
           type: payload.careType || 'machine-wash',
           wearsBeforeCare: payload.careType === 'dry-clean' ? 5 : 3,

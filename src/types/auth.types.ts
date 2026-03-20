@@ -26,6 +26,8 @@ export interface AuthState {
   isLoading: boolean;
   error: string | null;
   onboardingComplete: boolean;
+  shareWardrobe: boolean;
+  communityProfileId: string | null;
 }
 
 export interface SignupCredentials {

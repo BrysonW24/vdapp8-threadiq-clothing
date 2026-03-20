@@ -13,12 +13,40 @@ export type RootStackParamList = {
   };
   Settings: undefined;
   Notifications: undefined;
+  StyleProfile: {
+    profileId: string;
+  };
+  DiscoverFeed: undefined;
+  ItemMatch: {
+    trendingItemId: string;
+    sourceProfileId: string;
+  };
+  PurchaseConfirm: {
+    purchaseId: string;
+  };
+  RecentPurchases: undefined;
+  // Wishlist
+  Wishlist: undefined;
+  // Calendar + Events
+  EventDetail: {
+    eventId: string;
+  };
+  AddEvent: {
+    date?: string; // pre-fill date from calendar tap
+  } | undefined;
+  // Avatar
+  AvatarBuilder: undefined;
+  // Social Sharing
+  PostEventCapture: {
+    eventId: string;
+  };
 };
 
 export type BottomTabParamList = {
   Today: undefined;
   Wardrobe: undefined;
   Outfits: undefined;
+  Events: undefined;
   Profile: undefined;
 };
 

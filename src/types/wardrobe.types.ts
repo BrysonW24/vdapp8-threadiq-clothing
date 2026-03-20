@@ -193,6 +193,9 @@ export interface WardrobeItem {
   wearCount: number;
   lastWornAt: string | null; // ISO date
 
+  // Source
+  sourceUrl?: string; // Product URL if added via URL scraper
+
   // Metadata
   notes?: string;
   tags?: string[];
@@ -320,6 +323,7 @@ export interface AddItemPayload {
   purchasePrice?: number;
   careType?: CareType;
   notes?: string;
+  sourceUrl?: string;
 }
 
 export interface UpdateItemPayload {
